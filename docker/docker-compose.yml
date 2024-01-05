@@ -1,51 +1,54 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker compose reference guide at
-# https://docs.docker.com/compose/compose-file/
-
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
+version: '3.8'
 services:
-  server:
+  redis:
     build:
-      context: .
-    environment:
-      NODE_ENV: production
+      context: ./redis
     ports:
-      - 3100:3100
+      - 6379:6379
+    networks:
+      - my-network
+  node:
+    build: 
+      context: ../modules/LiveDataCollector
+    volumes:
+      - ../modules/LiveDataCollector/src:/usr/src/app/src
+    ports:
+      - 3101:3000
+    networks:
+      - my-network
+  # fastapi:
+  #   build:
+  #     context: ./api
+  #   ports:
+  #     - 8000:8000
+  #   depends_on:
+  #     - timescaledb
 
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
-# start the database before your application. The `db-data` volume persists the
-# database data between container restarts. The `db-password` secret is used
-# to set the database password. You must create `db/password.txt` and add
-# a password of your choosing to it before running `docker-compose up`.
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#   db:
-#     image: postgres
-#     restart: always
-#     user: postgres
-#     secrets:
-#       - db-password
-#     volumes:
-#       - db-data:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_DB=example
-#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-#     expose:
-#       - 5432
-#     healthcheck:
-#       test: [ "CMD", "pg_isready" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
+  # timescaledb:
+  #   image: timescale/timescaledb-ha:pg14-latest
+  #   ports:
+  #     - 5432:5432
+  #   environment:
+  #     POSTGRES_USER: myuser
+  #     POSTGRES_PASSWORD: mypassword
+  #     POSTGRES_DB: mydatabase
+  #   volumes:
+  #     - timescaledb-data:/var/lib/postgresql/data
+
+  # airflow:
+  #   image: apache/airflow
+  #   environment:
+  #     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+  #     - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres/mydb
+  #     - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  #   ports:
+  #     - 8080:8080
+  #   depends_on:
+  #     - timescaledb
+
 # volumes:
-#   db-data:
-# secrets:
-#   db-password:
-#     file: db/password.txt
-
+#   postgres-data:
+#   timescaledb-data:
+networks:
+  my-network:
+    driver: bridge

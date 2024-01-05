@@ -1,82 +1,85 @@
 const express = require('express');
 const app = express();
-const port = 3000;
 const fs = require('fs');
 const OANDAAdapter = require("oanda-adapter")
 const path = require('path');
+const port = 3000;
+const Redis = require('ioredis');
+
 const client = new OANDAAdapter({
     // 'live' or 'practice'
     environment: "practice",
     // Generate your API access token in the 'Manage API Access' section of 'My Account' on OANDA's website
     accessToken: "f1d687560e287d40aed90ccb899aad3c-14a9bd4b6b8e9c09f864cd222690f293"
 })
-// Define a route that executes your JavaScript code
-app.get('/', (req, res) => {
-    // Your JavaScript code goes here
-    // const result = yourJavaScriptCode();
 
-    // Send the result as the response
-    // res.json(result);
-    // res.send(result);
-});
+const redis = new Redis({
+    host: 'redis',
+    port: 6379,
+  });
 
-function getInstrumentsAsync() {
-    return new Promise((resolve, reject) => {
-        client.getInstruments(null, function (error, data) {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(data);
-            }
-        });
-    });
-}
-function writeToFile(dataToWrite){
-    // Data to be written to the file
-    const jsonString = JSON.stringify(dataToWrite, null, 2);
-    // Specify the file path
-        const filePath = 'example.txt';
 
-    // Write data to the file
-    //     fs.writeFile(filePath, jsonString, (err) => {
-    //         if (err) {
-    //             console.error('Error writing to file:', err);
-    //         } else {
-    //             console.log('Data has been written to the file successfully.');
-    //         }
-    //     });
-    fs.appendFile(filePath, jsonString + '\n', (err) => {
-        if (err) {
-            console.error('Error appending to file:', err);
-        } else {
-            console.log('Data has been appended to the file successfully.');
-        }
-    });
-}
-app.get('/get', async (req, res) => {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const streamKey = 'test_stream';
+
+// // Function to generate sample data
+// function generateData() {
+//   const timestamp = new Date().toISOString();
+//   const value = Math.random() * 100;
+//   return { timestamp, value };
+// }
+
+
+// const streamKeyPrefix = 'price_stream_';
+// client.subscribePrice(null, 'EUR_USD', (clientPrice) => {
+//     console.log(clientPrice);
+//     const streamKey = streamKeyPrefix + 'EUR_USD';
+  
+//     // Use XADD to add data to the stream
+//     redis.xadd(streamKey, '*', 'data', JSON.stringify(clientPrice));
+//   });
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+async function startListening(res, req, currency) {
+    console.log('Start listening to currency:', currency);
+  
     try {
-        const data = await getInstrumentsAsync();
-        res.json({ data });
+
+        const streamKeyPrefix = 'price_stream_';
+        client.subscribePrice(null, 'EUR_USD', (clientPrice) => {
+            console.log(clientPrice);
+            const streamKey = streamKeyPrefix + 'EUR_USD';
+        
+            // Use XADD to add data to the stream
+            redis.xadd(streamKey, '*', 'data', JSON.stringify(clientPrice));
+        });
+      // Send response to indicate stream listening started
+      await res.send(`Stream listening started for currency ${currency}`);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal Server Error' });
+      console.error('Error listening to price stream:', error);
     }
-});
+  }
+  
+  app.get('/start/:currency', async (req, res) => {
+    const currency = req.params.currency; // Extract currency pair from request
+  
+    // Start listening to price stream and save data to Redis
+    await startListening(res, req, currency);
+  });
+
 
 app.get('/sub', async (req, res) => {
     client.subscribePrice(null, "EUR_USD", (ClientPrice) => {
         // console.log(ClientPrice);
-        writeToFile(ClientPrice);
+        console.log(ClientPrice);
     })
 });
-app.get('/chart', async (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-    // res.send('hi');
+app.get('/stop', (req, res) => {
+  
+    // Stop stream listening process for specified currency pair
+    client.kill();
+    res.send(`all processed stoped!`);
 });
 
-
-
-// Start the server
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/`);
 });

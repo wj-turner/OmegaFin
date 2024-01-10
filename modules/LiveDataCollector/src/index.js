@@ -14,7 +14,7 @@ const client = new OANDAAdapter({
 })
 
 const redis = new Redis({
-    host: 'redis',
+    host: 'redis-live-data',
     port: 6379,
   });
 

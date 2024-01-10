@@ -1,0 +1,9 @@
+-- Create a regular table
+CREATE TABLE forex_data (
+    time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    closeout_bid NUMERIC NOT NULL,
+    closeout_ask NUMERIC NOT NULL
+);
+
+-- Convert the table to a hypertable
+SELECT create_hypertable('forex_data', 'time');

@@ -25,9 +25,9 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-from models.tick_data import TickData
+from models.model import Base
 
-target_metadata = TickData.metadata
+target_metadata = Base.metadata
 
 
 # other values from the config, defined by the needs of env.py,

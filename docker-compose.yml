@@ -123,6 +123,7 @@ services:
       - "9090:9090"
     networks:
       - my-network
+  
   python-scripts:
     build:
       context: ./modules/python-scripts
@@ -134,6 +135,7 @@ services:
       - redis-queue  
     networks:
       - my-network
+  
   process-data:
     build:
       context: ./modules/processData
@@ -149,6 +151,17 @@ services:
       - POSTGRES_USER=forexuser
       - POSTGRES_PASSWORD=forexpassword
       - POSTGRES_HOST=postgres
+  
+  historical_price:
+    build:
+      context: ./modules/HistoricalPriceApi
+    volumes:
+      - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+    user: root
+    depends_on:
+      - postgres
+    networks:
+      - my-network
     
 networks:
   my-network:

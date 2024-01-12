@@ -1,0 +1,172 @@
+version: '3.8'
+
+services:
+  redis-live-data:
+    image: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - my-network
+
+  redis-queue:
+    image: redis
+    ports:
+      - "6380:6379"
+    networks:
+      - my-network
+
+  postgres:
+    image: timescale/timescaledb:latest-pg12
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=forexdb
+      - POSTGRES_USER=forexuser
+      - POSTGRES_PASSWORD=forexpassword
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - my-network
+
+  node:
+    build: 
+      context: ./modules/LiveDataCollector
+    volumes:
+      - ./modules/LiveDataCollector/src:/usr/src/app/src
+    ports:
+      - "3101:3000"
+    depends_on:
+      - redis-live-data
+    networks:
+      - my-network
+
+  airflow-webserver:
+    image: apache/airflow:2.1.0
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+    volumes:
+      - ./services/airflow/dags:/usr/local/airflow/dags
+      - ./services/airflow/logs:/usr/local/airflow/logs
+      - ./services/airflow/plugins:/usr/local/airflow/plugins
+    ports:
+      - "8080:8080"
+    command: webserver
+    depends_on:
+      - redis-queue
+      - postgres
+    networks:
+      - my-network
+
+  airflow-scheduler:
+    image: apache/airflow:2.1.0
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+    volumes:
+      - ./services/airflow/dags:/usr/local/airflow/dags
+      - ./services/airflow/logs:/usr/local/airflow/logs
+      - ./services/airflow/plugins:/usr/local/airflow/plugins
+    depends_on:
+      - redis-queue
+      - postgres
+    networks:
+      - my-network
+
+  elasticsearch:
+    image: elasticsearch:7.9.3
+    environment:
+      - discovery.type=single-node
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - my-network
+
+  logstash:
+    image: logstash:7.9.3
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./services/logstash/pipeline:/usr/share/logstash/pipeline
+    networks:
+      - my-network
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: kibana:7.9.3
+    ports:
+      - "5601:5601"
+    networks:
+      - my-network
+
+  filebeat:
+    image: elastic/filebeat:8.11.3
+    user: root
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./services/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
+    networks:
+      - my-network
+    command: -e -strict.perms=false
+    depends_on:
+      - logstash
+
+  prometheus:
+    image: prom/prometheus:v2.26.0
+    volumes:
+      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - my-network
+  
+  python-scripts:
+    build:
+      context: ./modules/python-scripts
+    volumes:
+      - ./modules/python-scripts/src:/usr/src/app/src
+    user: root
+    depends_on:
+      - redis-live-data
+      - redis-queue  
+    networks:
+      - my-network
+  
+  process-data:
+    build:
+      context: ./modules/processData
+    volumes:
+      - ./modules/processData/src:/usr/src/app/src
+    user: root
+    depends_on:
+      - redis-queue  
+    networks:
+      - my-network
+    environment:
+      - POSTGRES_DB=forexdb
+      - POSTGRES_USER=forexuser
+      - POSTGRES_PASSWORD=forexpassword
+      - POSTGRES_HOST=postgres
+  
+  historical_price:
+    build:
+      context: ./modules/HistoricalPriceApi
+    volumes:
+      - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+    user: root
+    depends_on:
+      - postgres
+    networks:
+      - my-network
+    
+networks:
+  my-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  elasticsearch-data:

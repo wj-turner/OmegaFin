@@ -1,0 +1,4 @@
+redis
+psycopg2-binary
+sqlalchemy
+alembic

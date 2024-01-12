@@ -73,6 +73,9 @@ app.get('/sub', async (req, res) => {
         console.log(ClientPrice);
     })
 });
+app.get('/', async (req, res) => {
+  res.sendFile(path.join(__dirname, 'file.html'));
+});
 app.get('/stop', (req, res) => {
   
     // Stop stream listening process for specified currency pair

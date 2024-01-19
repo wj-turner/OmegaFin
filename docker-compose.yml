@@ -7,6 +7,11 @@ services:
       - "6379:6379"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis-queue:
     image: redis
@@ -14,6 +19,11 @@ services:
       - "6380:6379"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
     image: timescale/timescaledb:latest-pg12
@@ -27,6 +37,11 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   node:
     build: 
@@ -39,6 +54,11 @@ services:
       - redis-live-data
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-webserver:
     image: apache/airflow:2.1.0
@@ -57,6 +77,11 @@ services:
       - postgres
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-scheduler:
     image: apache/airflow:2.1.0
@@ -72,6 +97,11 @@ services:
       - postgres
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   elasticsearch:
     image: elasticsearch:7.9.3
@@ -83,6 +113,11 @@ services:
       - "9200:9200"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   logstash:
     image: logstash:7.9.3
@@ -94,6 +129,11 @@ services:
       - my-network
     depends_on:
       - elasticsearch
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   kibana:
     image: kibana:7.9.3
@@ -101,6 +141,11 @@ services:
       - "5601:5601"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   filebeat:
     image: elastic/filebeat:8.11.3
@@ -114,15 +159,31 @@ services:
     command: -e -strict.perms=false
     depends_on:
       - logstash
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  prometheus:
-    image: prom/prometheus:v2.26.0
-    volumes:
-      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  # prometheus:
+  #   image: prom/prometheus:v2.26.0
+  #   volumes:
+  #     - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  supervisor:
+    build: ./services/supervisor/  # Path to your Dockerfile
     ports:
-      - "9090:9090"
-    networks:
-      - my-network
+      - "9001:9001"  # Expose Supervisor web interface
+    volumes:
+      - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
   
   python-scripts:
     build:
@@ -135,6 +196,11 @@ services:
       - redis-queue  
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   
   process-data:
     build:
@@ -151,6 +217,11 @@ services:
       - POSTGRES_USER=forexuser
       - POSTGRES_PASSWORD=forexpassword
       - POSTGRES_HOST=postgres
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   
   historical_price:
     build:
@@ -162,6 +233,11 @@ services:
       - postgres
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   ctrader_fix_live:
     build:
       context: ./modules/LiveDataCollector/Ctrader
@@ -172,6 +248,11 @@ services:
       - postgres
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 networks:
   my-network:
     driver: bridge

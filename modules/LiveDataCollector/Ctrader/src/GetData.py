@@ -4,6 +4,10 @@ from ctrader_fix import *
 import datetime
 import redis
 import simplefix
+import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 with open("/usr/src/app/src/config-quote.json") as configFile:
@@ -21,7 +25,7 @@ static_symbol_ids = {
     "333": "Apple_Inc_(AAPL.O)"
 }
 
-
+logging.info("This is an info message")
 
 def send(request):
     diferred = client.send(request)
@@ -35,6 +39,7 @@ def onMessageReceived(client, responseMessage): # Callback for receiving all mes
 #             print(f"Tag: {tag}, Value: {value.decode()}")
     # We get the message type field value
     messageType = responseMessage.getFieldValue(35)
+    logging.info(f"Received message type: {messageType}")
     # we send a security list request after we received logon message response
     if messageType == "A":
         securityListRequest = SecurityListRequest(config)

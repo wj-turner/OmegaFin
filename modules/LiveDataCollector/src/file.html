@@ -27,7 +27,6 @@
         .service-item {
             background-color: #1f1f1f; /* Darker background for items */
             border: none;
-            padding: 20px;
             margin-bottom: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Shadow for depth */
@@ -43,11 +42,13 @@
             font-weight: 500;
             font-size: 20px;
             display: block;
+            padding: 20px;
         }
         .description {
             color: #a5a5a5; /* Light gray for descriptions */
             font-size: 14px;
             margin-top: 5px;
+            display: block;
         }
         h1 {
             color: #f0f2f5;
@@ -63,9 +64,11 @@
 
     <script>
         const services = [
-            { name: 'Kibana', port: 5601, description: 'Explore & Visualize Your Data' },
-            { name: 'Airflow', port: 8080, description: 'Workflow Management Tool' },
-            { name: 'Prometheus', port: 9090, description: 'Monitoring and Alerting Toolkit' }
+            { name: 'Kibana', port: 5601,route: '', description: 'Explore & Visualize Your Data' },
+            { name: 'Airflow', port: 8080,route: '', description: 'Workflow Management Tool' },
+            { name: 'Fast API Docs', port: 8000,route: '/docs', description: 'Restfull API Documents' },
+            { name: 'Supervisor', port: 9001,route: '', description: 'Process Control System' },
+            // { name: 'Prometheus', port: 9090, description: 'Monitoring and Alerting Toolkit' }
             // Add other services here if needed
         ];
 
@@ -77,17 +80,17 @@
                 listItem.className = 'service-item';
 
                 const link = document.createElement('a');
-                link.href = `http://${window.location.hostname}:${service.port}`;
+                link.href = `http://${window.location.hostname}:${service.port}${service.route}`;
                 link.className = 'service-link';
                 link.target = '_blank';
                 link.textContent = service.name;
 
-                const description = document.createElement('div');
+                const description = document.createElement('span');
                 description.className = 'description';
                 description.textContent = service.description;
-
+                link.appendChild(description);
                 listItem.appendChild(link);
-                listItem.appendChild(description);
+                
                 serviceList.appendChild(listItem);
             });
         }

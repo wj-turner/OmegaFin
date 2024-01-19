@@ -184,7 +184,12 @@ services:
       - "9001:9001"  # Expose Supervisor web interface
     volumes:
       - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
-  
+  fastapi:
+    build: ./modules/RestAPI
+    volumes:
+      - ./modules/RestAPI/src:/app
+    ports:
+      - "8000:8000"
   python-scripts:
     build:
       context: ./modules/python-scripts

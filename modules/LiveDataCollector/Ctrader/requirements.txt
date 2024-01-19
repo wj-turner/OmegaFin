@@ -1,0 +1,4 @@
+ctrader-open-api
+ctrader-fix
+simplefix==1.0.17
+redis

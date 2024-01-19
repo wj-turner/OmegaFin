@@ -7,8 +7,9 @@ Base = declarative_base()
 # Define the TickData model
 class TickData(Base):
     __tablename__ = 'tick_data'
-    pair_name = Column(String(10), primary_key=True)
+    pair_name = Column(String(50), primary_key=True)
     time = Column(TIMESTAMP, primary_key=True)
+    source = Column(String)
     bid = Column(Numeric)
     ask = Column(Numeric)
 
@@ -19,7 +20,8 @@ class TickData(Base):
 class TimeData(Base):
     __abstract__ = True
     time = Column(TIMESTAMP, primary_key=True)
-    pair_name = Column(String, primary_key=True)
+    pair_name = Column(String(50), primary_key=True)
+    source = Column(String)
     open = Column(Float)
     high = Column(Float)
     low = Column(Float)

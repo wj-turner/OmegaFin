@@ -1,0 +1,13 @@
+{
+    "Host": "demo2.p.ctrader.com",
+    "Port": 5201,
+    "SSL": false,
+    "Username": "4133237",
+    "Password": "test@12345",
+    "BeginString": "FIX.4.4",
+    "SenderCompID": "demo.pepperstoneuk.4133237",
+    "SenderSubID": "QUOTE",
+    "TargetCompID": "cServer",
+    "TargetSubID": "QUOTE",
+    "HeartBeat": "30"
+  }

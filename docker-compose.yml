@@ -162,7 +162,16 @@ services:
       - postgres
     networks:
       - my-network
-    
+  ctrader_fix_live:
+    build:
+      context: ./modules/LiveDataCollector/Ctrader
+    volumes:
+      - ./modules/LiveDataCollector/Ctrader/src:/usr/src/app/src
+    user: root
+    depends_on:
+      - postgres
+    networks:
+      - my-network
 networks:
   my-network:
     driver: bridge

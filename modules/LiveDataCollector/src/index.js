@@ -45,9 +45,9 @@ async function startListening(res, req, currency) {
     try {
 
         const streamKeyPrefix = 'price_stream_';
-        client.subscribePrice(null, 'EUR_USD', (clientPrice) => {
+        client.subscribePrice(null, currency, (clientPrice) => {
             console.log(clientPrice);
-            const streamKey = streamKeyPrefix + 'EUR_USD';
+            const streamKey = streamKeyPrefix + currency;
         
             // Use XADD to add data to the stream
             redis.xadd(streamKey, '*', 'data', JSON.stringify(clientPrice));

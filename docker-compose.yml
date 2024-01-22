@@ -178,18 +178,19 @@ services:
   #     options:
   #       max-size: "10m"
   #       max-file: "3"
-  supervisor:
-    build: ./services/supervisor/  # Path to your Dockerfile
-    ports:
-      - "9001:9001"  # Expose Supervisor web interface
-    volumes:
-      - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
+  # supervisor:
+  #   build: ./services/supervisor/  # Path to your Dockerfile
+  #   ports:
+  #     - "9001:9001"  # Expose Supervisor web interface
+  #   volumes:
+  #     - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
   fastapi:
     build: ./modules/RestAPI
     volumes:
       - ./modules/RestAPI/src:/app
     ports:
       - "8000:8000"
+  
   python-scripts:
     build:
       context: ./modules/python-scripts
@@ -228,11 +229,27 @@ services:
         max-size: "10m"
         max-file: "3"
   
-  historical_price:
+  # historical_price:
+  #   build:
+  #     context: ./modules/HistoricalPriceApi
+  #   volumes:
+  #     - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+  #   user: root
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  
+  ctrader_fix_live:
     build:
-      context: ./modules/HistoricalPriceApi
+      context: ./modules/LiveDataCollector/Ctrader
     volumes:
-      - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+      - ./modules/LiveDataCollector/Ctrader/src:/usr/src/app/src
     user: root
     depends_on:
       - postgres
@@ -243,14 +260,14 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-  ctrader_fix_live:
+  ctrader_hist_data:
     build:
-      context: ./modules/LiveDataCollector/Ctrader
+      context: ./modules/HistoricalPriceApi/Ctrader
     volumes:
-      - ./modules/LiveDataCollector/Ctrader/src:/usr/src/app/src
+      - ./modules/HistoricalPriceApi/Ctrader/src:/usr/src/app/src
     user: root
     depends_on:
-      - postgres
+      - airflow-scheduler
     networks:
       - my-network
     logging:

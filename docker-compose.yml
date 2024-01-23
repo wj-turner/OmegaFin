@@ -43,11 +43,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  node:
+  oanda_live_data:
     build: 
-      context: ./modules/LiveDataCollector
+      context: ./modules/LiveDataCollector/Oanda
     volumes:
-      - ./modules/LiveDataCollector/src:/usr/src/app/src
+      - ./modules/LiveDataCollector/Oanda/src:/usr/src/app/src
     ports:
       - "3101:3000"
     depends_on:
@@ -165,25 +165,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # prometheus:
-  #   image: prom/prometheus:v2.26.0
-  #   volumes:
-  #     - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
-  #   networks:
-  #     - my-network
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
-  # supervisor:
-  #   build: ./services/supervisor/  # Path to your Dockerfile
-  #   ports:
-  #     - "9001:9001"  # Expose Supervisor web interface
-  #   volumes:
-  #     - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
+
   fastapi:
     build: ./modules/RestAPI
     volumes:
@@ -191,11 +173,11 @@ services:
     ports:
       - "8000:8000"
   
-  python-scripts:
+  data_harmonizer:
     build:
-      context: ./modules/python-scripts
+      context: ./modules/DataHarmonizer
     volumes:
-      - ./modules/python-scripts/src:/usr/src/app/src
+      - ./modules/DataHarmonizer/src:/usr/src/app/src
     user: root
     depends_on:
       - redis-live-data
@@ -229,22 +211,7 @@ services:
         max-size: "10m"
         max-file: "3"
   
-  # historical_price:
-  #   build:
-  #     context: ./modules/HistoricalPriceApi
-  #   volumes:
-  #     - ./modules/HistoricalPriceApi/src:/usr/src/app/src
-  #   user: root
-  #   depends_on:
-  #     - postgres
-  #   networks:
-  #     - my-network
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
-  
+
   ctrader_fix_live:
     build:
       context: ./modules/LiveDataCollector/Ctrader
@@ -260,11 +227,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  
   ctrader_hist_data:
     build:
-      context: ./modules/HistoricalPriceApi/Ctrader
+      context: ./modules/HistoricalDataCollector/Ctrader
     volumes:
-      - ./modules/HistoricalPriceApi/Ctrader/src:/usr/src/app/src
+      - ./modules/HistoricalDataCollector/Ctrader/src:/usr/src/app/src
     user: root
     depends_on:
       - airflow-scheduler
@@ -275,6 +243,40 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  # historical_price:
+  #   build:
+  #     context: ./modules/HistoricalPriceApi
+  #   volumes:
+  #     - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+  #   user: root
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  # prometheus:
+  #   image: prom/prometheus:v2.26.0
+  #   volumes:
+  #     - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  # supervisor:
+  #   build: ./services/supervisor/  # Path to your Dockerfile
+  #   ports:
+  #     - "9001:9001"  # Expose Supervisor web interface
+  #   volumes:
+  #     - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
 networks:
   my-network:
     driver: bridge

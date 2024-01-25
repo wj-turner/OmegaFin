@@ -90,9 +90,9 @@ services:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
 
     volumes:
-      - ./services/airflow/dags:/usr/local/airflow/dags
-      - ./services/airflow/logs:/usr/local/airflow/logs
-      - ./services/airflow/plugins:/usr/local/airflow/plugins
+      - ./services/airflow/dags:/opt/airflow/dags
+      # - ./services/airflow/logs:/opt/airflow/logs
+      - ./services/airflow/plugins:/opt/airflow/plugins
     ports:
       - "8080:8080"
     command: airflow webserver
@@ -116,9 +116,9 @@ services:
       - EXECUTOR=Local
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
     volumes:
-      - ./services/airflow/dags:/usr/local/airflow/dags
-      - ./services/airflow/logs:/usr/local/airflow/logs
-      - ./services/airflow/plugins:/usr/local/airflow/plugins
+      - ./services/airflow/dags:/opt/airflow/dags
+      # - ./services/airflow/logs:/opt/airflow/logs
+      - ./services/airflow/plugins:/opt/airflow/plugins
     depends_on:
       - redis-queue
       - postgres
@@ -225,6 +225,7 @@ services:
     user: root
     depends_on:
       - redis-queue  
+      - postgres
     networks:
       - my-network
     environment:

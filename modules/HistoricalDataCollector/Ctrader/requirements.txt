@@ -2,3 +2,4 @@ ctrader-open-api
 requests
 Twisted
 pyOpenSSL
+redis

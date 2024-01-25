@@ -11,8 +11,15 @@ credentialsFile = open("src/credentials.json")
 credentials = json.load(credentialsFile)
 host = EndPoints.PROTOBUF_LIVE_HOST if credentials["HostType"].lower() == "live" else EndPoints.PROTOBUF_DEMO_HOST
 client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
-symbolName = "USDX"
+
+_symbolName = "USDX"
+_fromTimestamp = ''
+_toTimestamp = ''
+_period = ''
 dailyBars = []
+
+
+
 def transformTrendbar(trendbar):
     openTime = datetime.datetime.fromtimestamp(trendbar.utcTimestampInMinutes * 60, datetime.timezone.utc)
     openPrice = (trendbar.low + trendbar.deltaOpen) / 100000.0
@@ -38,23 +45,26 @@ def trendbarsResponseCallback(result):
 def symbolsResponseCallback(result):
     print("\nSymbols received")
     symbols = Protobuf.extract(result)
-    global symbolName
-    symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == symbolName, symbols.symbol))
+    global symbolName, _fromTimestamp, _toTimestamp, _period
+    symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == _symbolName, symbols.symbol))
     if len(symbolsFilterResult) == 0:
-        raise Exception(f"There is symbol that matches to your defined symbol name: {symbolName}")
+        raise Exception(f"There is symbol that matches to your defined symbol name: {_symbolName}")
     elif len(symbolsFilterResult) > 1:
-        raise Exception(f"More than one symbol matched with your defined symbol name: {symbolName}, match result: {symbolsFilterResult}")
+        raise Exception(f"More than one symbol matched with your defined symbol name: {_symbolName}, match result: {symbolsFilterResult}")
     symbol = symbolsFilterResult[0]
     request = ProtoOAGetTrendbarsReq()
     request.symbolId = symbol.symbolId
     request.ctidTraderAccountId = credentials["AccountId"]
-    request.period = ProtoOATrendbarPeriod.MN1
+    # request.period = ProtoOATrendbarPeriod.MN1
+    request.period = _period
     # We set the from/to time stamps to 50 weeks, you can load more data by sending multiple requests
     # Please check the ProtoOAGetTrendbarsReq documentation for more detail
-    request.fromTimestamp = int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1300)).utctimetuple())) * 1000
+    # request.fromTimestamp = int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1300)).utctimetuple())) * 1000
+    request.fromTimestamp = int(calendar.timegm(_fromTimestamp.utctimetuple())) * 1000
     #request.fromTimestamp = 158113000000
     #request.toTimestamp = int(calendar.timegm(datetime.datetime.utcnow().utctimetuple())) * 1000
-    request.toTimestamp = int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1250)).utctimetuple())) * 1000
+    request.toTimestamp = int(calendar.timegm(_toTimestamp.utctimetuple())) * 1000
+    # request.toTimestamp = int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1250)).utctimetuple())) * 1000
     deferred = client.send(request)
     deferred.addCallbacks(trendbarsResponseCallback, onError)
     
@@ -92,12 +102,22 @@ def connected(client): # Callback for client connection
     request.clientSecret = credentials["Secret"]
     deferred = client.send(request)
     deferred.addCallbacks(applicationAuthResponseCallback, onError)
-    
+
+def fetch_data(symbol, start_date, end_date, timeframe):
+    global symbolName, _fromTimestamp, _toTimestamp, _period
+    symbolName = symbol
+    # Modify the request with provided parameters
+    _fromTimestamp = start_date
+    _toTimestamp = end_date
+    _period = timeframe
+
+    client.startService()
+    reactor.run()
 # Setting optional client callbacks
 client.setConnectedCallback(connected)
 client.setDisconnectedCallback(disconnected)
 client.setMessageReceivedCallback(onMessageReceived)
 # Starting the client service
-client.startService()
-# Run Twisted reactor, we imported it earlier
-reactor.run()
+# client.startService()
+# # Run Twisted reactor, we imported it earlier
+# reactor.run()

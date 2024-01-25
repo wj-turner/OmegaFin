@@ -25,8 +25,27 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # postgres:
+  #   image: timescale/timescaledb:latest-pg12
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_DB=forexdb
+  #     - POSTGRES_USER=forexuser
+  #     - POSTGRES_PASSWORD=forexpassword
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
   postgres:
-    image: timescale/timescaledb:latest-pg12
+    build:
+      context: ./services/postgres  # Path to the directory with your Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "5432:5432"
     environment:
@@ -35,6 +54,7 @@ services:
       - POSTGRES_PASSWORD=forexpassword
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./services/postgres/init_scripts:/docker-entrypoint-initdb.d  # Mount init scripts
     networks:
       - my-network
     logging:
@@ -61,17 +81,21 @@ services:
         max-file: "3"
 
   airflow-webserver:
-    image: apache/airflow:2.1.0
+    build: 
+      context: ./services/airflow 
     environment:
       - LOAD_EX=n
       - EXECUTOR=Local
+      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.contrib.auth.backends.password_auth
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
+
     volumes:
       - ./services/airflow/dags:/usr/local/airflow/dags
       - ./services/airflow/logs:/usr/local/airflow/logs
       - ./services/airflow/plugins:/usr/local/airflow/plugins
     ports:
       - "8080:8080"
-    command: webserver
+    command: airflow webserver
     depends_on:
       - redis-queue
       - postgres
@@ -84,10 +108,13 @@ services:
         max-file: "3"
 
   airflow-scheduler:
-    image: apache/airflow:2.1.0
+    build: 
+      context: ./services/airflow 
+    command: airflow scheduler
     environment:
       - LOAD_EX=n
       - EXECUTOR=Local
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
     volumes:
       - ./services/airflow/dags:/usr/local/airflow/dags
       - ./services/airflow/logs:/usr/local/airflow/logs

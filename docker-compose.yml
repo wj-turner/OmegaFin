@@ -88,10 +88,10 @@ services:
       - EXECUTOR=Local
       - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.contrib.auth.backends.password_auth
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
-
+      - AIRFLOW__CORE__FERNET_KEY=IEh0KyelruFu1jN4ebH-ukAlvfbW-oufei-fgc3LZfM=
     volumes:
       - ./services/airflow/dags:/opt/airflow/dags
-      # - ./services/airflow/logs:/opt/airflow/logs
+      - ./services/airflow/logs:/opt/airflow/logs
       - ./services/airflow/plugins:/opt/airflow/plugins
     ports:
       - "8080:8080"
@@ -115,10 +115,12 @@ services:
       - LOAD_EX=n
       - EXECUTOR=Local
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
+      - AIRFLOW__CORE__FERNET_KEY=IEh0KyelruFu1jN4ebH-ukAlvfbW-oufei-fgc3LZfM=
     volumes:
       - ./services/airflow/dags:/opt/airflow/dags
-      # - ./services/airflow/logs:/opt/airflow/logs
+      - ./services/airflow/logs:/opt/airflow/logs
       - ./services/airflow/plugins:/opt/airflow/plugins
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - redis-queue
       - postgres
@@ -264,6 +266,8 @@ services:
     user: root
     depends_on:
       - airflow-scheduler
+    ports:
+      - "5100:5100"
     networks:
       - my-network
     logging:

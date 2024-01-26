@@ -3,3 +3,4 @@ requests
 Twisted
 pyOpenSSL
 redis
+psycopg2-binary

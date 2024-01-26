@@ -55,6 +55,13 @@ class OneWeekData(TimeData):
 class OneMonthData(TimeData):
     __tablename__ = 'one_month_data'
 
-
+class TimeDataGap(Base):
+    __tablename__ = 'time_data_gap'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String)
+    start_date = Column(String)
+    end_date = Column(String)
+    timeframe = Column(String)
+    status = Column(String)
     
 

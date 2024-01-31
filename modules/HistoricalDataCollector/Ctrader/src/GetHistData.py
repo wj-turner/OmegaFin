@@ -30,7 +30,7 @@ host = EndPoints.PROTOBUF_LIVE_HOST if credentials["HostType"].lower() == "live"
 client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
 symbolName = "USDX"
 dailyBars = []
-def transformTrendbar(trendbar):
+def transformTrendbar(trendbar, symbolId, period):
     #openTime = datetime.datetime.fromtimestamp(trendbar.utcTimestampInMinutes * 60, datetime.timezone.utc)
     openTime = datetime.datetime.fromtimestamp(trendbar.utcTimestampInMinutes * 60, datetime.timezone.utc).isoformat()
     openPrice = (trendbar.low + trendbar.deltaOpen) / 100000.0
@@ -44,13 +44,15 @@ def transformTrendbar(trendbar):
         'highPrice': highPrice,
         'lowPrice': lowPrice,
         'closePrice': closePrice,
-        'volume': trendbar.volume
+        'volume': trendbar.volume,
+        'symbolId': symbolId,
+        'period': period
     }
-def trendbarsResponseCallback(result):
+def trendbarsResponseCallback(result, symbolId, period):
     # print("\nTrendbars received")
     redis_queue = redis.Redis(host='redis-queue', port=6379, db=0)
     trendbars = Protobuf.extract(result)
-    barsData = list(map(transformTrendbar, trendbars.trendbar))
+    barsData = list(map(lambda trendbar: transformTrendbar(trendbar, symbolId, period), trendbars.trendbar))
     global dailyBars
     dailyBars.clear()
     dailyBars.extend(barsData)
@@ -71,10 +73,10 @@ def trendbarsResponseCallback(result):
 
 def symbolsResponseCallback(result):
     # print("\nSymbols received")
-    fromTimestamp = int(args.fromTimestamp) if args.fromTimestamp else int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1300)).utctimetuple())) * 1000
-    toTimestamp = int(args.toTimestamp) if args.toTimestamp else int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1250)).utctimetuple())) * 1000
-    period = int(args.period) if args.period else ProtoOATrendbarPeriod.MN1
-    symbolName = args.symbolName if args.symbolName else "USDX"
+    fromTimestamp =  int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1300)).utctimetuple())) * 1000
+    toTimestamp =  int(calendar.timegm((datetime.datetime.utcnow() - datetime.timedelta(weeks=1250)).utctimetuple())) * 1000
+    period =  ProtoOATrendbarPeriod.MN1
+    symbolName = "USDX"
 
     # print(fromTimestamp)
     # print(toTimestamp)
@@ -82,6 +84,7 @@ def symbolsResponseCallback(result):
     # print(symbolName)
     
     symbols = Protobuf.extract(result)
+    # print(symbols);
     symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == symbolName, symbols.symbol))
     if len(symbolsFilterResult) == 0:
         raise Exception(f"There is symbol that matches to your defined symbol name: {symbolName}")
@@ -163,19 +166,10 @@ def fetch_and_process(result):
     if reactor.running:
         reactor.stop()
 
+
 @inlineCallbacks
 def process_row(symbolName, fromTimestamp, toTimestamp, period):
     # Your existing logic to process this data
-
-    # symbols = Protobuf.extract(result)
-    # symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == symbolName, symbols.symbol))
-
-    # if len(symbolsFilterResult) == 0:
-    #     raise Exception(f"There is no symbol that matches your defined symbol name: {symbolName}")
-    # elif len(symbolsFilterResult) > 1:
-    #     raise Exception(f"More than one symbol matched with your defined symbol name: {symbolName}, match result: {symbolsFilterResult}")
-
-    # symbol = symbolsFilterResult[0]
     request = ProtoOAGetTrendbarsReq()
     request.symbolId = int(symbolName)
     request.ctidTraderAccountId = credentials["AccountId"]
@@ -184,7 +178,10 @@ def process_row(symbolName, fromTimestamp, toTimestamp, period):
     request.toTimestamp = int(toTimestamp)
 
     deferred = client.send(request)
-    yield deferred.addCallbacks(trendbarsResponseCallback, onError)
+    yield deferred.addCallbacks(lambda result: trendbarsResponseCallback(result, symbolName, period), onError)
+
+
+    # yield deferred.addCallbacks(trendbarsResponseCallback, onError)
 
 # Start the processing
 # fetch_and_process()

@@ -1,12 +1,12 @@
-# Base image
-FROM apache/airflow:2.2.0
+# Use the official Airflow image as a parent image
+FROM apache/airflow:2.8.1
 
-# Set the environment variables
-ENV AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres:5432/mydatabase
-ENV AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+WORKDIR /opt/airflow
+RUN pip install psycopg2-binary
 
-# Expose the default Airflow ports
-EXPOSE 8080 8793
+# Copy the entrypoint script
+COPY entrypoint.sh entrypoint.sh
 
-# Set the entrypoint command
-ENTRYPOINT ["./entrypoint.sh"]
+# Set the entrypoint
+ENTRYPOINT ["/opt/airflow/entrypoint.sh"]
+# CMD ["tail", "-f", "/dev/null"]

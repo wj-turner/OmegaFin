@@ -7,6 +7,11 @@ services:
       - "6379:6379"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis-queue:
     image: redis
@@ -14,9 +19,33 @@ services:
       - "6380:6379"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # postgres:
+  #   image: timescale/timescaledb:latest-pg12
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_DB=forexdb
+  #     - POSTGRES_USER=forexuser
+  #     - POSTGRES_PASSWORD=forexpassword
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
   postgres:
-    image: timescale/timescaledb:latest-pg12
+    build:
+      context: ./services/postgres  # Path to the directory with your Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "5432:5432"
     environment:
@@ -25,53 +54,83 @@ services:
       - POSTGRES_PASSWORD=forexpassword
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./services/postgres/init_scripts:/docker-entrypoint-initdb.d  # Mount init scripts
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  node:
+  oanda_live_data:
     build: 
-      context: ./modules/LiveDataCollector
+      context: ./modules/LiveDataCollector/Oanda
     volumes:
-      - ./modules/LiveDataCollector/src:/usr/src/app/src
+      - ./modules/LiveDataCollector/Oanda/src:/usr/src/app/src
     ports:
       - "3101:3000"
     depends_on:
       - redis-live-data
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-webserver:
-    image: apache/airflow:2.1.0
+    build: 
+      context: ./services/airflow 
     environment:
       - LOAD_EX=n
       - EXECUTOR=Local
+      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.contrib.auth.backends.password_auth
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
+      - AIRFLOW__CORE__FERNET_KEY=IEh0KyelruFu1jN4ebH-ukAlvfbW-oufei-fgc3LZfM=
     volumes:
-      - ./services/airflow/dags:/usr/local/airflow/dags
-      - ./services/airflow/logs:/usr/local/airflow/logs
-      - ./services/airflow/plugins:/usr/local/airflow/plugins
+      - ./services/airflow/dags:/opt/airflow/dags
+      - ./services/airflow/logs:/opt/airflow/logs
+      - ./services/airflow/plugins:/opt/airflow/plugins
     ports:
       - "8080:8080"
-    command: webserver
+    command: airflow webserver
     depends_on:
       - redis-queue
       - postgres
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-scheduler:
-    image: apache/airflow:2.1.0
+    build: 
+      context: ./services/airflow 
+    command: airflow scheduler
     environment:
       - LOAD_EX=n
       - EXECUTOR=Local
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://forexuser:forexpassword@postgres/airflowdb
+      - AIRFLOW__CORE__FERNET_KEY=IEh0KyelruFu1jN4ebH-ukAlvfbW-oufei-fgc3LZfM=
     volumes:
-      - ./services/airflow/dags:/usr/local/airflow/dags
-      - ./services/airflow/logs:/usr/local/airflow/logs
-      - ./services/airflow/plugins:/usr/local/airflow/plugins
+      - ./services/airflow/dags:/opt/airflow/dags
+      - ./services/airflow/logs:/opt/airflow/logs
+      - ./services/airflow/plugins:/opt/airflow/plugins
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - redis-queue
       - postgres
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   elasticsearch:
     image: elasticsearch:7.9.3
@@ -83,6 +142,11 @@ services:
       - "9200:9200"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   logstash:
     image: logstash:7.9.3
@@ -94,6 +158,11 @@ services:
       - my-network
     depends_on:
       - elasticsearch
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   kibana:
     image: kibana:7.9.3
@@ -101,6 +170,11 @@ services:
       - "5601:5601"
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   filebeat:
     image: elastic/filebeat:8.11.3
@@ -114,27 +188,43 @@ services:
     command: -e -strict.perms=false
     depends_on:
       - logstash
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  prometheus:
-    image: prom/prometheus:v2.26.0
-    volumes:
-      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
+
+  fastapi:
+    build: ./modules/RestAPI
     networks:
       - my-network
-  
-  python-scripts:
-    build:
-      context: ./modules/python-scripts
     volumes:
-      - ./modules/python-scripts/src:/usr/src/app/src
+      - ./modules/RestAPI/src:/app
+    ports:
+      - "8000:8000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  data_harmonizer:
+    build:
+      context: ./modules/DataHarmonizer
+    volumes:
+      - ./modules/DataHarmonizer/src:/usr/src/app/src
     user: root
     depends_on:
       - redis-live-data
       - redis-queue  
     networks:
       - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   
   process-data:
     build:
@@ -144,6 +234,7 @@ services:
     user: root
     depends_on:
       - redis-queue  
+      - postgres
     networks:
       - my-network
     environment:
@@ -151,18 +242,80 @@ services:
       - POSTGRES_USER=forexuser
       - POSTGRES_PASSWORD=forexpassword
       - POSTGRES_HOST=postgres
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
   
-  historical_price:
+
+  ctrader_fix_live:
     build:
-      context: ./modules/HistoricalPriceApi
+      context: ./modules/LiveDataCollector/Ctrader
     volumes:
-      - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+      - ./modules/LiveDataCollector/Ctrader/src:/usr/src/app/src
     user: root
     depends_on:
       - postgres
     networks:
       - my-network
-    
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  ctrader_hist_data:
+    build:
+      context: ./modules/HistoricalDataCollector/Ctrader
+    volumes:
+      - ./modules/HistoricalDataCollector/Ctrader/src:/usr/src/app/src
+    user: root
+    depends_on:
+      - airflow-scheduler
+    ports:
+      - "5100:5100"
+    networks:
+      - my-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  # historical_price:
+  #   build:
+  #     context: ./modules/HistoricalPriceApi
+  #   volumes:
+  #     - ./modules/HistoricalPriceApi/src:/usr/src/app/src
+  #   user: root
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  # prometheus:
+  #   image: prom/prometheus:v2.26.0
+  #   volumes:
+  #     - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - my-network
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  # supervisor:
+  #   build: ./services/supervisor/  # Path to your Dockerfile
+  #   ports:
+  #     - "9001:9001"  # Expose Supervisor web interface
+  #   volumes:
+  #     - ./services/supervisor/conf.d:/etc/supervisor/conf.d  # Mount your Supervisor configuration
 networks:
   my-network:
     driver: bridge

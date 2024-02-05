@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212; /* Dark background */
+            color: #f0f2f5; /* Light text color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+        }
+        .service-list {
+            list-style: none;
+            padding: 0;
+        }
+        .service-item {
+            background-color: #1f1f1f; /* Darker background for items */
+            border: none;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Shadow for depth */
+            transition: all 0.3s ease-in-out;
+        }
+        .service-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+        }
+        .service-link {
+            text-decoration: none;
+            color: #17a2b8; /* Bright color for links */
+            font-weight: 500;
+            font-size: 20px;
+            display: block;
+            padding: 20px;
+        }
+        .description {
+            color: #a5a5a5; /* Light gray for descriptions */
+            font-size: 14px;
+            margin-top: 5px;
+            display: block;
+        }
+        h1 {
+            color: #f0f2f5;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Service Dashboard</h1>
+        <ul class="service-list" id="serviceList"></ul>
+    </div>
+
+    <script>
+        const services = [
+            { name: 'Kibana', port: 5601,route: '', description: 'Explore & Visualize Your Data' },
+            { name: 'Airflow', port: 8080,route: '', description: 'Workflow Management Tool' },
+            { name: 'Fast API Docs', port: 8000,route: '/docs', description: 'Restfull API Documents' },
+            { name: 'Supervisor', port: 9001,route: '', description: 'Process Control System' },
+            // { name: 'Prometheus', port: 9090, description: 'Monitoring and Alerting Toolkit' }
+            // Add other services here if needed
+        ];
+
+        function createServiceLinks() {
+            const serviceList = document.getElementById('serviceList');
+
+            services.forEach(service => {
+                const listItem = document.createElement('li');
+                listItem.className = 'service-item';
+
+                const link = document.createElement('a');
+                link.href = `http://${window.location.hostname}:${service.port}${service.route}`;
+                link.className = 'service-link';
+                link.target = '_blank';
+                link.textContent = service.name;
+
+                const description = document.createElement('span');
+                description.className = 'description';
+                description.textContent = service.description;
+                link.appendChild(description);
+                listItem.appendChild(link);
+                
+                serviceList.appendChild(listItem);
+            });
+        }
+
+        createServiceLinks();
+    </script>
+</body>
+</html>

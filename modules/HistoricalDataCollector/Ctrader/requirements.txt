@@ -1,0 +1,6 @@
+ctrader-open-api
+requests
+Twisted
+pyOpenSSL
+redis
+psycopg2-binary

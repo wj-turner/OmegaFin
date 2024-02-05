@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Numeric, TIMESTAMP, Integer, Float, DateTime
+from sqlalchemy import create_engine, Column, String, Numeric, TIMESTAMP, Integer, Float
 from sqlalchemy.ext.declarative import declarative_base
 
 # Create a single Base class
@@ -54,9 +54,5 @@ class OneWeekData(TimeData):
 
 class OneMonthData(TimeData):
     __tablename__ = 'one_month_data'
-
-
-
-
     
 

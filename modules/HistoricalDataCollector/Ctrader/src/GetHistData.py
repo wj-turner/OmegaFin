@@ -4,21 +4,25 @@ from ctrader_open_api.messages.OpenApiCommonMessages_pb2 import *
 from ctrader_open_api.messages.OpenApiMessages_pb2 import *
 from ctrader_open_api.messages.OpenApiModelMessages_pb2 import *
 from twisted.internet import reactor
+from twisted.python import log
+from twisted.internet.defer import DeferredList
 
 from twisted.enterprise import adbapi
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-
+from twisted.python.log import startLogging
 
 import psycopg2
 import json
 import datetime
 import calendar
 import redis
+import sys
+
 
 dbpool = adbapi.ConnectionPool(
     "psycopg2",
-    database="forexdb",
+    database="configdb",
     user="forexuser",
     password="forexpassword",
     host="postgres"
@@ -30,6 +34,8 @@ host = EndPoints.PROTOBUF_LIVE_HOST if credentials["HostType"].lower() == "live"
 client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
 symbolName = "USDX"
 dailyBars = []
+startLogging(sys.stdout)
+
 def transformTrendbar(trendbar, symbolId, period):
     #openTime = datetime.datetime.fromtimestamp(trendbar.utcTimestampInMinutes * 60, datetime.timezone.utc)
     openTime = datetime.datetime.fromtimestamp(trendbar.utcTimestampInMinutes * 60, datetime.timezone.utc).isoformat()
@@ -49,7 +55,7 @@ def transformTrendbar(trendbar, symbolId, period):
         'period': period
     }
 def trendbarsResponseCallback(result, symbolId, period):
-    # print("\nTrendbars received")
+    print("\nTrendbars received")
     redis_queue = redis.Redis(host='redis-queue', port=6379, db=0)
     trendbars = Protobuf.extract(result)
     barsData = list(map(lambda trendbar: transformTrendbar(trendbar, symbolId, period), trendbars.trendbar))
@@ -59,7 +65,7 @@ def trendbarsResponseCallback(result, symbolId, period):
     stream_key = "HistoricalStream"
     # print("//////////////////////")
     for bar in dailyBars:
-        # print(bar)
+        print(bar)
         # redis_client.xadd(stream_key, {'data': json.dumps(bar)})
         # redis_queue.rpush(stream_key, {'data': json.dumps(bar)})
         bar_json = json.dumps(bar)
@@ -84,7 +90,7 @@ def symbolsResponseCallback(result):
     # print(symbolName)
     
     symbols = Protobuf.extract(result)
-    # print(symbols);
+    print(symbols);
     symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == symbolName, symbols.symbol))
     if len(symbolsFilterResult) == 0:
         raise Exception(f"There is symbol that matches to your defined symbol name: {symbolName}")
@@ -124,9 +130,12 @@ def applicationAuthResponseCallback(result):
     deferred = client.send(request)
     deferred.addCallbacks(accountAuthResponseCallback, onError)
 
-def onError(client, failure): # Call back for errors
-    print("\nMessage Error: ", failure)
-    pass
+def onError(client, failure=None): # Call back for errors
+    if failure is not None:
+        print("\nMessage Error: ", failure)
+    else:
+        print("\nAn error occurred, but no failure information is available.")
+
 
 def disconnected(client, reason): # Callback for client disconnection
     print("\nDisconnected: ", reason)
@@ -138,7 +147,7 @@ def onMessageReceived(client, message): # Callback for receiving all messages
     # print("\nMessage received: \n", Protobuf.extract(message))
 
 def connected(client): # Callback for client connection
-    # print("\nConnected")
+    print("\nConnected")
     request = ProtoOAApplicationAuthReq()
     request.clientId = credentials["ClientId"]
     request.clientSecret = credentials["Secret"]
@@ -154,10 +163,16 @@ def fetch_and_process(result):
         row_id, symbolName, fromTimestamp, toTimestamp, period = row
 
         # Process each row
-        symbolFilterResult = yield process_row(symbolName, fromTimestamp, toTimestamp, period)
+        if(symbolName == 'symbol_initiation'):
+            symbols = Protobuf.extract(result)
+            # print(symbols)
+            yield insert_symbols(dbpool,symbols)
+        else:
+            symbolFilterResult = yield process_row(symbolName, fromTimestamp, toTimestamp, period)
 
         # Update the status of the row in the database after processing
         yield dbpool.runOperation("UPDATE time_data_gap SET status = 'processed' WHERE id = %s", [row_id])
+        
 
     # Close the database connection after processing all rows
     dbpool.close()
@@ -165,6 +180,43 @@ def fetch_and_process(result):
     # Stop the reactor if it's running
     if reactor.running:
         reactor.stop()
+
+
+def insert_symbols(dbpool, proto_symbols_res):
+
+    deferreds = []
+    insert_query = """
+    INSERT INTO symbols ("symbolId", "symbolName", "source", "initUntil", "enabled", "baseAssetId", "quoteAssetId", "symbolCategoryId", "description")
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+"""
+    symbols = proto_symbols_res.symbol
+    def on_success(_):
+        log.msg("Insert operation successful.")
+
+    def on_error(e):
+        log.err(f"Insert operation failed: {e}")
+    for symbol in symbols:
+        
+        try:
+            # print('hiiiiiiiiiii')
+            d = dbpool.runOperation(insert_query, (
+                symbol.symbolId,
+                symbol.symbolName,
+                'pepperstone',
+                '0',
+                '0',
+                symbol.baseAssetId,
+                symbol.quoteAssetId,
+                symbol.symbolCategoryId,
+                symbol.description
+            ))
+            deferreds.append(d)
+            # d.addCallbacks(on_success, on_error)
+            log.msg(f"Inserted symbol {symbol.symbolName} successfully")
+        except Exception as e:
+            # Log or handle the error
+            log.err(f"Failed to insert symbol {symbol.symbolName}: {str(e)}")
+    return DeferredList(deferreds)
 
 
 @inlineCallbacks

@@ -13,5 +13,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 # Command to run on container start (here, we're just keeping the container running)
-CMD ["python", "src/process_data.py"]
-# CMD ["tail", "-f", "/dev/null"]
+# CMD ["python", "src/process_data.py"]
+CMD ["tail", "-f", "/dev/null"]

@@ -22,6 +22,8 @@ static_symbol_ids = {
     "41": "XAUUSD",
     "101": "USDX",
     "128": "BTCUSD",
+    "129": "ETHUSD",
+    "133": "BitcoinCash",
     "333": "Apple_Inc_(AAPL.O)"
 }
 
@@ -31,7 +33,7 @@ def send(request):
     diferred = client.send(request)
     #diferred.addCallback(lambda _: print("\nSent: ", request.getMessage(client.getMessageSequenceNumber())))
 def onMessageReceived(client, responseMessage): # Callback for receiving all messages
-#     print("\nReceived: ", responseMessage.getMessage())
+    print("\nReceived: ", responseMessage.getMessage())
     
 #     if parsed_message:
 #     # Iterate over the parsed message

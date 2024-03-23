@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ENV NAME Value
 
 # Command to run on container start (here, we're just keeping the container running)
-# CMD ["python", "src/GetData.py"]
+CMD ["python", "src/GetHistData.py"]
 
 # Command to run on container start (here, we're just keeping the container running)
-CMD ["tail", "-f", "/dev/null"]
+# CMD ["tail", "-f", "/dev/null"]

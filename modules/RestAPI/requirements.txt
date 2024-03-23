@@ -6,3 +6,4 @@ asyncpg
 pydantic
 alembic
 psycopg2-binary
+pandas_market_calendars

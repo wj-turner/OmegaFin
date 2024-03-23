@@ -6,6 +6,7 @@ import redis
 import simplefix
 import logging
 import sys
+import psycopg2
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -14,18 +15,55 @@ with open("/usr/src/app/src/config-quote.json") as configFile:
     config = json.load(configFile)
 client = Client(config["Host"], config["Port"], ssl = config["SSL"])
 
+def fetch_enabled_symbols():
+    connection = None
+    try:
+        # Connect to your database
+        connection = psycopg2.connect(
+            user="forexuser",
+            password="forexpassword",
+            host="postgres",
+            database="configdb"
+                                      )
+
+        cursor = connection.cursor()
+        
+        # Execute a query
+        cursor.execute('SELECT "symbolId", "symbolName" FROM symbols WHERE enabled = 1;')
+        
+        # Fetch all rows
+        rows = cursor.fetchall()
+        print(rows)
+        # Map symbolId to symbolName
+        symbol_ids = {str(row[0]): row[1] for row in rows}
+        
+        return symbol_ids
+        
+    except (Exception, psycopg2.DatabaseError) as error:
+        logging.error(f"Error fetching enabled symbols: {error}")
+        return {}
+    finally:
+        # Close the database connection
+        if connection is not None:
+            connection.close()
+
+# Replace static_symbol_ids with dynamic data from database
+static_symbol_ids = fetch_enabled_symbols()
+
+print(static_symbol_ids)
+
 # to do make this dynamic
-static_symbol_ids = {
-    "1": "EURUSD",
-    "2": "GBPUSD",
-    "3": "EURJPY",
-    "41": "XAUUSD",
-    "101": "USDX",
-    "128": "BTCUSD",
-    "129": "ETHUSD",
-    "133": "BitcoinCash",
-    "333": "Apple_Inc_(AAPL.O)"
-}
+# static_symbol_ids = {
+#     "1": "EURUSD",
+#     "2": "GBPUSD",
+#     "3": "EURJPY",
+#     "41": "XAUUSD",
+#     "101": "USDX",
+#     "128": "BTCUSD",
+#     "129": "ETHUSD",
+#     "133": "BitcoinCash",
+#     "333": "Apple_Inc_(AAPL.O)"
+# }
 
 logging.info("This is an info message")
 

@@ -265,6 +265,12 @@ def continuous_processing(redis_client, queue_name):
         except Exception as e:
             logging.error(f"Error in continuous processing: {e}")
 
+
+#read data from redis
+#parse data into ohlc
+#check if its not exist, add it into database            
+
+
 if __name__ == "__main__":
     logging.info("Starting tick data processing script")
     continuous_processing(redis_client, 'processed_data_queue')

@@ -56,6 +56,7 @@ def transformTrendbar(trendbar, symbolId, period):
     }
 def trendbarsResponseCallback(result, symbolId, period):
     print("\nTrendbars received")
+    # print(result)
     redis_queue = redis.Redis(host='redis-queue', port=6379, db=0)
     trendbars = Protobuf.extract(result)
     barsData = list(map(lambda trendbar: transformTrendbar(trendbar, symbolId, period), trendbars.trendbar))
@@ -65,7 +66,7 @@ def trendbarsResponseCallback(result, symbolId, period):
     stream_key = "HistoricalStream"
     # print("//////////////////////")
     for bar in dailyBars:
-        print(bar)
+        # print(bar)
         # redis_client.xadd(stream_key, {'data': json.dumps(bar)})
         # redis_queue.rpush(stream_key, {'data': json.dumps(bar)})
         bar_json = json.dumps(bar)
@@ -90,7 +91,7 @@ def symbolsResponseCallback(result):
     # print(symbolName)
     
     symbols = Protobuf.extract(result)
-    print(symbols);
+    # print(symbols);
     symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == symbolName, symbols.symbol))
     if len(symbolsFilterResult) == 0:
         raise Exception(f"There is symbol that matches to your defined symbol name: {symbolName}")
@@ -155,7 +156,7 @@ def connected(client): # Callback for client connection
     deferred.addCallbacks(applicationAuthResponseCallback, onError)
 @inlineCallbacks
 def fetch_and_process(result):
-
+    # print(result)
     # Fetch data from the database
     rows = yield dbpool.runQuery("SELECT id, symbol, start_date, end_date, timeframe FROM time_data_gap WHERE status = 'pending'")
 

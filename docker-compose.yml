@@ -264,7 +264,22 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-  
+
+  websocket_client:
+    build:
+      context: ./modules/MT5LiveDataClient
+    depends_on:
+      - postgres
+    networks:
+      - my-network
+    volumes:
+      - ./modules/MT5LiveDataClient/src:/usr/src/app/src
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   ctrader_hist_data:
     build:
       context: ./modules/HistoricalDataCollector/Ctrader

@@ -14,5 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # EXPOSE 80
 
 # Run websocket_client.py when the container launches
-# CMD ["python", "./src/websocket_client.py"]
-CMD ["tail", "-f", "/dev/null"]
+CMD ["python", "./src/websocket_client.py"]
+# CMD ["tail", "-f", "/dev/null"]

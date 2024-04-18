@@ -1,1 +1,2 @@
 python-socketio[client]
+psycopg2-binary

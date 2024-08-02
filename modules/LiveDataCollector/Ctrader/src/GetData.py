@@ -7,12 +7,24 @@ import simplefix
 import logging
 import sys
 import psycopg2
-
+import os
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Load environment variables
+config = {
+    "Host": os.getenv("Ctrader_FIX_Host"),
+    "Port": int(os.getenv("Ctrader_FIX_Port")),
+    "SSL": os.getenv("Ctrader_FIX_SSL", "false").lower() in ("true", "1", "t"),
+    "Username": os.getenv("Ctrader_FIX_Username"),
+    "Password": os.getenv("Ctrader_FIX_Password"),
+    "BeginString": os.getenv("Ctrader_FIX_BeginString"),
+    "SenderCompID": os.getenv("Ctrader_FIX_SenderCompID"),
+    "SenderSubID": os.getenv("Ctrader_FIX_SenderSubID"),
+    "TargetCompID": os.getenv("Ctrader_FIX_TargetCompID"),
+    "TargetSubID": os.getenv("Ctrader_FIX_TargetSubID"),
+    "HeartBeat": int(os.getenv("Ctrader_FIX_HeartBeat", 30))
+}
 
-with open("/usr/src/app/src/config-quote.json") as configFile:
-    config = json.load(configFile)
 client = Client(config["Host"], config["Port"], ssl = config["SSL"])
 
 def fetch_enabled_symbols():
@@ -20,10 +32,10 @@ def fetch_enabled_symbols():
     try:
         # Connect to your database
         connection = psycopg2.connect(
-            user="forexuser",
-            password="forexpassword",
+            user=os.getenv("POSTGRES_MAIN_DB_name"),
+            password=os.getenv("POSTGRES_PASSWORD"),
             host="postgres",
-            database="configdb"
+            database=os.getenv("POSTGRES_CONFIG_DB_name")
                                       )
 
         cursor = connection.cursor()
@@ -33,7 +45,7 @@ def fetch_enabled_symbols():
         
         # Fetch all rows
         rows = cursor.fetchall()
-        print(rows)
+        # print(rows)
         # Map symbolId to symbolName
         symbol_ids = {str(row[0]): row[1] for row in rows}
         
@@ -50,7 +62,7 @@ def fetch_enabled_symbols():
 # Replace static_symbol_ids with dynamic data from database
 static_symbol_ids = fetch_enabled_symbols()
 
-print(static_symbol_ids)
+# print(static_symbol_ids)
 
 # to do make this dynamic
 # static_symbol_ids = {

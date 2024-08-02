@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.symbol_model import Symbol
 from app.models.deal_model import Deal
 from app.models.position_model import Position
-from app.models.app_config import AppConfig
+from app.models.config_model import AppConfig
 from typing import List
 
 router = APIRouter()

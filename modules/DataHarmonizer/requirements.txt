@@ -1,3 +1,3 @@
-redis
-sqlalchemy
-alembic
+redis==5.0.3
+sqlalchemy==2.0.29
+alembic==1.13.1

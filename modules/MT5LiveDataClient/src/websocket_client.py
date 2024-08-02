@@ -1,15 +1,16 @@
 import socketio
 import psycopg2
 import datetime
+import os
 # Database connection parameters
 
 open_positions = set()
 # Establishing the connection
 conn = psycopg2.connect(
-            user="forexuser",
-            password="forexpassword",
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
             host="postgres",
-            database="configdb"
+            database=os.getenv("POSTGRES_CONFIG_DB_name")
                                       )
 
 

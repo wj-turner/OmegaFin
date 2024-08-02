@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   redis-live-data:
-    image: redis
+    image: redis:7.4.0
     ports:
       - "6379:6379"
     networks:
@@ -14,7 +14,7 @@ services:
         max-file: "3"
 
   redis-queue:
-    image: redis
+    image: redis:7.4.0
     ports:
       - "6380:6379"
     networks:
@@ -25,23 +25,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # postgres:
-  #   image: timescale/timescaledb:latest-pg12
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     - POSTGRES_DB=forexdb
-  #     - POSTGRES_USER=forexuser
-  #     - POSTGRES_PASSWORD=forexpassword
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #   networks:
-  #     - my-network
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
   postgres:
     build:
       context: ./services/postgres  # Path to the directory with your Dockerfile
@@ -49,9 +32,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=forexdb
-      - POSTGRES_USER=forexuser
-      - POSTGRES_PASSWORD=forexpassword
+      - POSTGRES_DB=${POSTGRES_MAIN_DB_name}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./services/postgres/init_scripts:/docker-entrypoint-initdb.d  # Mount init scripts
@@ -62,23 +45,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-  # oanda_live_data:
-  #   build: 
-  #     context: ./modules/LiveDataCollector/Oanda
-  #   volumes:
-  #     - ./modules/LiveDataCollector/Oanda/src:/usr/src/app/src
-  #   ports:
-  #     - "3101:3000"
-  #   depends_on:
-  #     - redis-live-data
-  #   networks:
-  #     - my-network
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
 
   airflow-webserver:
     build: 
@@ -208,6 +174,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: 
+      - .env
   
   data_harmonizer:
     build:
@@ -225,6 +193,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: 
+      - .env
   
   process-data:
     build:
@@ -238,15 +208,14 @@ services:
     networks:
       - my-network
     environment:
-      - POSTGRES_DB=forexdb
-      - POSTGRES_USER=forexuser
-      - POSTGRES_PASSWORD=forexpassword
       - POSTGRES_HOST=postgres
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: 
+      - .env
   
 
   ctrader_fix_live:
@@ -264,6 +233,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: 
+      - .env
+
 
   websocket_client:
     build:
@@ -279,6 +251,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: 
+      - .env
 
   ctrader_hist_data:
     build:
@@ -297,6 +271,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: 
+      - .env
   # historical_price:
   #   build:
   #     context: ./modules/HistnoricalPriceApi

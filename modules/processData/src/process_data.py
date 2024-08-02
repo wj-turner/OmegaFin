@@ -112,7 +112,7 @@ from models.model import Base, OneMinData, FiveMinData, FifteenMinData, ThirtyMi
 from sqlalchemy.exc import IntegrityError
 
 # Establish database connection
-db_url = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/{os.getenv('POSTGRES_DB')}"
+db_url = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/{os.getenv('POSTGRES_MAIN_DB_name')}"
 engine = create_engine(db_url)
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)

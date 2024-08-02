@@ -4,7 +4,7 @@ This open-source project is designed for gathering, processing, and analyzing fi
 
 ## Overview
 
-OmegaFin is composed of several components that work together to manage and analyze forex data:
+OmegaFin is composed of several components that work together to manage and analyze financial data:
 
 ### Main App
 

@@ -1,6 +1,6 @@
 # Use the TimescaleDB image as the base image
-FROM timescale/timescaledb:latest-pg12
-
+# FROM timescale/timescaledb:latest-pg12
+FROM timescale/timescaledb:2.16.0-pg16
 # Set the default environment variables for Postgres
 # ENV POSTGRES_DB=mydatabase
 # ENV POSTGRES_USER=myuser

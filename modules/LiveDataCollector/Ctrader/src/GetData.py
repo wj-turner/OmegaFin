@@ -6,26 +6,76 @@ import redis
 import simplefix
 import logging
 import sys
-
+import psycopg2
+import os
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Load environment variables
+config = {
+    "Host": os.getenv("Ctrader_FIX_Host"),
+    "Port": int(os.getenv("Ctrader_FIX_Port")),
+    "SSL": os.getenv("Ctrader_FIX_SSL", "false").lower() in ("true", "1", "t"),
+    "Username": os.getenv("Ctrader_FIX_Username"),
+    "Password": os.getenv("Ctrader_FIX_Password"),
+    "BeginString": os.getenv("Ctrader_FIX_BeginString"),
+    "SenderCompID": os.getenv("Ctrader_FIX_SenderCompID"),
+    "SenderSubID": os.getenv("Ctrader_FIX_SenderSubID"),
+    "TargetCompID": os.getenv("Ctrader_FIX_TargetCompID"),
+    "TargetSubID": os.getenv("Ctrader_FIX_TargetSubID"),
+    "HeartBeat": int(os.getenv("Ctrader_FIX_HeartBeat", 30))
+}
 
-with open("/usr/src/app/src/config-quote.json") as configFile:
-    config = json.load(configFile)
 client = Client(config["Host"], config["Port"], ssl = config["SSL"])
 
+def fetch_enabled_symbols():
+    connection = None
+    try:
+        # Connect to your database
+        connection = psycopg2.connect(
+            user=os.getenv("POSTGRES_MAIN_DB_name"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            host="postgres",
+            database=os.getenv("POSTGRES_CONFIG_DB_name")
+                                      )
+
+        cursor = connection.cursor()
+        
+        # Execute a query
+        cursor.execute('SELECT "symbolId", "symbolName" FROM symbols WHERE enabled = 1;')
+        
+        # Fetch all rows
+        rows = cursor.fetchall()
+        # print(rows)
+        # Map symbolId to symbolName
+        symbol_ids = {str(row[0]): row[1] for row in rows}
+        
+        return symbol_ids
+        
+    except (Exception, psycopg2.DatabaseError) as error:
+        logging.error(f"Error fetching enabled symbols: {error}")
+        return {}
+    finally:
+        # Close the database connection
+        if connection is not None:
+            connection.close()
+
+# Replace static_symbol_ids with dynamic data from database
+static_symbol_ids = fetch_enabled_symbols()
+
+# print(static_symbol_ids)
+
 # to do make this dynamic
-static_symbol_ids = {
-    "1": "EURUSD",
-    "2": "GBPUSD",
-    "3": "EURJPY",
-    "41": "XAUUSD",
-    "101": "USDX",
-    "128": "BTCUSD",
-    "129": "ETHUSD",
-    "133": "BitcoinCash",
-    "333": "Apple_Inc_(AAPL.O)"
-}
+# static_symbol_ids = {
+#     "1": "EURUSD",
+#     "2": "GBPUSD",
+#     "3": "EURJPY",
+#     "41": "XAUUSD",
+#     "101": "USDX",
+#     "128": "BTCUSD",
+#     "129": "ETHUSD",
+#     "133": "BitcoinCash",
+#     "333": "Apple_Inc_(AAPL.O)"
+# }
 
 logging.info("This is an info message")
 

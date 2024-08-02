@@ -18,23 +18,40 @@ import datetime
 import calendar
 import redis
 import sys
-
-
+import os
 dbpool = adbapi.ConnectionPool(
     "psycopg2",
-    database="configdb",
-    user="forexuser",
-    password="forexpassword",
-    host="postgres"
+    user=os.getenv("POSTGRES_MAIN_DB_name"),
+    password=os.getenv("POSTGRES_PASSWORD"),
+    host="postgres",
+    database=os.getenv("POSTGRES_CONFIG_DB_name")
 )
+# credentials = {
+#     "ClientId": os.getenv("Ctrader_RESTAPI_ClientId"),
+#     "Secret": os.getenv("Ctrader_RESTAPI_Secret"),
+#     "HostType": os.getenv("Ctrader_RESTAPI_HostType"),
+#     "AccessToken": os.getenv("Ctrader_RESTAPI_AccessToken"),
+#     "AccountId": int(os.getenv("Ctrader_RESTAPI_AccountId")),
+# }
 
 credentialsFile = open("src/credentials.json")
 credentials = json.load(credentialsFile)
+original_send = Client.send
+
+def send_with_logging(self, request):
+    print(f"Request sent: {request}")
+    deferred = original_send(self, request)
+    if deferred is None:
+        print("Warning: 'send' method returned None")
+    return deferred
+    
+Client.send = send_with_logging
 host = EndPoints.PROTOBUF_LIVE_HOST if credentials["HostType"].lower() == "live" else EndPoints.PROTOBUF_DEMO_HOST
 client = Client(host, EndPoints.PROTOBUF_PORT, TcpProtocol)
 symbolName = "USDX"
 dailyBars = []
 startLogging(sys.stdout)
+
 
 def transformTrendbar(trendbar, symbolId, period):
     #openTime = datetime.datetime.fromtimestamp(trendbar.utcTimestampInMinutes * 60, datetime.timezone.utc)
@@ -56,6 +73,7 @@ def transformTrendbar(trendbar, symbolId, period):
     }
 def trendbarsResponseCallback(result, symbolId, period):
     print("\nTrendbars received")
+    # print(result)
     redis_queue = redis.Redis(host='redis-queue', port=6379, db=0)
     trendbars = Protobuf.extract(result)
     barsData = list(map(lambda trendbar: transformTrendbar(trendbar, symbolId, period), trendbars.trendbar))
@@ -65,7 +83,7 @@ def trendbarsResponseCallback(result, symbolId, period):
     stream_key = "HistoricalStream"
     # print("//////////////////////")
     for bar in dailyBars:
-        print(bar)
+        # print(bar)
         # redis_client.xadd(stream_key, {'data': json.dumps(bar)})
         # redis_queue.rpush(stream_key, {'data': json.dumps(bar)})
         bar_json = json.dumps(bar)
@@ -90,7 +108,7 @@ def symbolsResponseCallback(result):
     # print(symbolName)
     
     symbols = Protobuf.extract(result)
-    print(symbols);
+    # print(symbols);
     symbolsFilterResult = list(filter(lambda symbol: symbol.symbolName == symbolName, symbols.symbol))
     if len(symbolsFilterResult) == 0:
         raise Exception(f"There is symbol that matches to your defined symbol name: {symbolName}")
@@ -128,6 +146,7 @@ def applicationAuthResponseCallback(result):
     request.ctidTraderAccountId = credentials["AccountId"]
     request.accessToken = credentials["AccessToken"]
     deferred = client.send(request)
+    print("\here")
     deferred.addCallbacks(accountAuthResponseCallback, onError)
 
 def onError(client, failure=None): # Call back for errors
@@ -149,13 +168,16 @@ def onMessageReceived(client, message): # Callback for receiving all messages
 def connected(client): # Callback for client connection
     print("\nConnected")
     request = ProtoOAApplicationAuthReq()
+    
     request.clientId = credentials["ClientId"]
     request.clientSecret = credentials["Secret"]
     deferred = client.send(request)
+    # print("\nhere: ",deferred)
+    # deferred.addErrback(onError)
     deferred.addCallbacks(applicationAuthResponseCallback, onError)
 @inlineCallbacks
 def fetch_and_process(result):
-
+    print(result)
     # Fetch data from the database
     rows = yield dbpool.runQuery("SELECT id, symbol, start_date, end_date, timeframe FROM time_data_gap WHERE status = 'pending'")
 

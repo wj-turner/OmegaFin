@@ -1,8 +1,9 @@
-fastapi
-uvicorn
-sqlalchemy
-databases
-asyncpg
-pydantic
-alembic
-psycopg2-binary
+fastapi==0.110.2
+uvicorn==0.29.0
+sqlalchemy==2.0.29
+databases==0.9.0
+asyncpg==0.29.0
+pydantic==2.7.0
+alembic==1.13.1
+psycopg2-binary==2.9.9
+pandas_market_calendars==4.3.3

@@ -3,9 +3,18 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager 
 from sqlalchemy.orm import Session
+import os
+
 
 # Database connection URL
-SQLALCHEMY_DATABASE_URL = "postgresql://forexuser:forexpassword@postgres:5432/configdb"
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_CONFIG_DB_NAME = os.getenv("POSTGRES_CONFIG_DB_name")
+
+SQLALCHEMY_DATABASE_URL = (
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@postgres:5432/{POSTGRES_CONFIG_DB_NAME}"
+)
+
 
 # Create the SQLAlchemy engine
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
